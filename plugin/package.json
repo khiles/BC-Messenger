@@ -1,0 +1,14 @@
+{
+  "name": "bc-offline-messenger-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build pipeline for the BC Offline Messenger userscript.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}

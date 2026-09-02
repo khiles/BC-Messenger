@@ -1,0 +1,69 @@
+name: Build userscript
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'plugin/src/**'
+      - 'plugin/banner.txt'
+      - 'plugin/build.mjs'
+      - 'plugin/package.json'
+      - 'plugin/package-lock.json'
+      - '.github/workflows/build-userscript.yml'
+  pull_request:
+    paths:
+      - 'plugin/src/**'
+      - 'plugin/banner.txt'
+      - 'plugin/build.mjs'
+      - 'plugin/package.json'
+      - 'plugin/package-lock.json'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: plugin/package-lock.json
+
+      - name: Install
+        working-directory: plugin
+        run: npm ci
+
+      - name: Build
+        working-directory: plugin
+        run: npm run build
+
+      - name: Check bundle drift (PRs only)
+        if: github.event_name == 'pull_request'
+        run: |
+          git add bc-offline-messenger.user.js
+          if ! git diff --cached --quiet -- bc-offline-messenger.user.js; then
+            echo "::error::Source changed but committed bundle is stale. Run 'npm run build' in plugin/ and commit the result, OR let the main-branch workflow rebuild after merge."
+            git --no-pager diff --cached --stat -- bc-offline-messenger.user.js
+            exit 1
+          fi
+
+      - name: Commit rebuilt bundle (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git add bc-offline-messenger.user.js
+          if git diff --cached --quiet -- bc-offline-messenger.user.js; then
+            echo "bundle unchanged"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: rebuild userscript bundle [skip ci]"
+          git push

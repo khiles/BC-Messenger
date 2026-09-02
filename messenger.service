@@ -1,0 +1,76 @@
+# systemd service for BC Offline Messenger (Ubuntu)
+#
+# This mirrors the unit installed at /etc/systemd/system/messenger.service
+# on 192.168.1.47, where the app lives in /root/messenger.
+#
+# Setup:
+#   1. Install Node.js 20+ and a build toolchain. better-sqlite3 is a native
+#      module: if no prebuilt binary matches your Node ABI it compiles from
+#      source, which needs a compiler and python3.
+#        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+#        apt install -y nodejs build-essential python3
+#
+#   2. Copy the server files (index.js, db.js, pack/ and package.json live at
+#      the repo root — there is no server/ subdirectory):
+#        mkdir -p /root/messenger
+#        cp -r /path/to/BC-Messenger/{index.js,db.js,package.json,pack} /root/messenger/
+#        cd /root/messenger && npm install --omit=dev
+#
+#   3. Provide the API key. .env is gitignored, so a fresh clone has none.
+#      The server reads it from its own directory at startup (index.js).
+#        install -m 600 /path/to/.env /root/messenger/.env
+#
+#   4. Install and start the service:
+#        cp /root/messenger/messenger.service /etc/systemd/system/
+#        systemctl daemon-reload
+#        systemctl enable --now messenger
+#
+#   5. Check status / logs:
+#        systemctl status messenger
+#        journalctl -u messenger -f
+#
+# NOTE: after any Node major-version upgrade, the native better-sqlite3 binding
+# must be rebuilt or the service will crash-loop with ERR_DLOPEN_FAILED:
+#        cd /root/messenger && npm rebuild better-sqlite3 && systemctl restart messenger
+
+[Unit]
+Description=BC Offline Messenger relay server
+# Wants= only pulls the target in; After= is what actually orders against it.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Runs as root because the app lives under /root, which is mode 700 and
+# therefore unreadable by an unprivileged service user. See hardening note below.
+User=root
+Group=root
+
+WorkingDirectory=/root/messenger
+
+# Node binary — adjust if using nvm or a non-standard path
+ExecStart=/usr/bin/node index.js
+
+Environment=NODE_ENV=production
+
+# Restart automatically on crash (not on clean stop)
+Restart=on-failure
+RestartSec=5s
+
+# Harden the process.
+# ProtectHome=true would mask /root and hide the app from itself, so it cannot
+# be used while WorkingDirectory is under /root. Moving the install to
+# /opt/bc-messenger would allow ProtectHome=true plus a dedicated non-root
+# User=bcmessenger, which is the stronger configuration.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/root/messenger
+
+# Log to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=messenger
+
+[Install]
+WantedBy=multi-user.target

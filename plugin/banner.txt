@@ -1,0 +1,22 @@
+// ==UserScript==
+// @name         BC Offline Messenger
+// @namespace    https://github.com/khiles/BC-Messenger
+// @version      1.1.0
+// @description  Private messenger for Bondage Club with offline message delivery and group messaging
+// @author       BC-Messenger
+// @match        https://www.bondageprojects.elementfx.com/*
+// @match        https://bondageprojects.elementfx.com/*
+// @match        https://www.bondageprojects.com/*
+// @match        https://bondageprojects.com/*
+// @updateURL    https://raw.githubusercontent.com/khiles/BC-Messenger/main/bc-offline-messenger.user.js
+// @downloadURL  https://raw.githubusercontent.com/khiles/BC-Messenger/main/bc-offline-messenger.user.js
+// @connect      messenger.vo-p.com
+// @connect      cdn.jsdelivr.net
+// @connect      raw.githubusercontent.com
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_xmlhttpRequest
+// @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
+// @run-at       document-idle
+// ==/UserScript==
